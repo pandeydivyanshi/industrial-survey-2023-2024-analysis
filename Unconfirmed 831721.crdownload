@@ -1,0 +1,63 @@
+import matplotlib.pyplot as plt
+
+exec(open("load_all_simple.py").read())
+
+# =====================================================================
+# OBJECTIVE 2: Trends in output, employment, investment (Table 1)
+# =====================================================================
+output = table1[table1["characteristic"].str.contains("VALUE OF OUTPUT", case=False)]
+workers = table1[table1["characteristic"].str.contains("NUMBER OF WORKERS", case=False)]
+capital = table1[table1["characteristic"].str.contains("FIXED  CAPITAL", case=False)]
+
+years = [c for c in table1.columns if c != "characteristic"]
+
+plt.figure(figsize=(12, 5))
+plt.plot(years, output[years].iloc[0], marker="o", label="Value of Output")
+plt.title("Industrial Output Trend, 1981-82 to 2023-24")
+plt.xticks(years[::4], rotation=45)
+plt.ylabel("Rs. Lakh")
+plt.legend()
+plt.tight_layout()
+plt.savefig("trend_output.png")
+plt.show()
+
+plt.figure(figsize=(12, 5))
+plt.plot(years, workers[years].iloc[0], marker="o", color="orange", label="Number of Workers")
+plt.title("Employment Trend, 1981-82 to 2023-24")
+plt.xticks(years[::4], rotation=45)
+plt.ylabel("Persons")
+plt.legend()
+plt.tight_layout()
+plt.savefig("trend_employment.png")
+plt.show()
+
+plt.figure(figsize=(12, 5))
+plt.plot(years, capital[years].iloc[0], marker="o", color="green", label="Fixed Capital")
+plt.title("Investment (Fixed Capital) Trend, 1981-82 to 2023-24")
+plt.xticks(years[::4], rotation=45)
+plt.ylabel("Rs. Lakh")
+plt.legend()
+plt.tight_layout()
+plt.savefig("trend_capital.png")
+plt.show()
+
+
+# =====================================================================
+# OBJECTIVE 1 & 3: Compare industries & find top contributors (Table 2)
+# =====================================================================
+ranked = table2.sort_values("Net Value Added", ascending=False)
+
+plt.figure(figsize=(10, 10))
+plt.barh(ranked["Industry_Description"], ranked["Net Value Added"])
+plt.gca().invert_yaxis()
+plt.xlabel("Net Value Added (Rs. Lakh)")
+plt.title("Industries Ranked by Net Value Added, 2023-24")
+plt.tight_layout()
+plt.savefig("industries_ranked.png")
+plt.show()
+
+print("\nTop 5 industries by Net Value Added:")
+print(ranked[["Industry_Description", "Net Value Added"]].head())
+
+print("\nBottom 5 industries by Net Value Added:")
+print(ranked[["Industry_Description", "Net Value Added"]].tail())

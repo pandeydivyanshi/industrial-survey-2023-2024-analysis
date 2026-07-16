@@ -1,0 +1,102 @@
+import pandas as pd
+
+# =====================================================================
+# TABLE 1: National trend, 1981-82 to 2023-24
+# =====================================================================
+raw1 = pd.read_excel("Table 1 Annual Series For Principal Characteristics_2023_2024.xls",
+                      sheet_name="web1", header=None)
+
+# find where each year-block starts
+header_rows = raw1.index[raw1[0].astype(str).str.strip() == "CHARACTERISTICS"].tolist()
+
+blocks = []
+for i in range(len(header_rows)):
+    start_row = header_rows[i]
+    end_row = header_rows[i + 1] if i + 1 < len(header_rows) else len(raw1)
+    years = raw1.loc[start_row, 1:].dropna().tolist()
+    block = raw1.loc[start_row + 2 : end_row - 1, 0 : len(years)]
+    block.columns = ["characteristic"] + years
+    blocks.append(block)
+
+table1 = blocks[0]
+for b in blocks[1:]:
+    table1 = table1.merge(b, on="characteristic", how="outer")
+
+table1["characteristic"] = table1["characteristic"].astype(str).str.strip()
+table1 = table1.dropna(subset=table1.columns[1:], how="all")
+
+# convert year columns to numbers (and strip stray * marks / commas)
+year_cols = [c for c in table1.columns if c != "characteristic"]
+for c in year_cols:
+    table1[c] = table1[c].astype(str).str.replace("*", "", regex=False).str.replace(",", "", regex=False)
+    table1[c] = pd.to_numeric(table1[c], errors="coerce")
+
+print("Table 1 loaded:", table1.shape)
+
+
+# =====================================================================
+# TABLE 2: Industry-wise, 2023-24 (29 industries)
+# =====================================================================
+raw2 = pd.read_excel("Table 2 Principal Characterstics by Major Industry Group_2023_2024.xls",
+                      sheet_name="web2", header=None)
+
+col_names_2 = raw2.iloc[4].tolist()
+col_names_2[0] = "NIC_2008"
+col_names_2[1] = "Industry_Description"
+
+table2 = raw2.iloc[7:].copy()
+table2.columns = [str(c).strip() for c in col_names_2]
+table2 = table2[table2["NIC_2008"] != "ALL INDIA"].reset_index(drop=True)
+
+for c in table2.columns[2:]:
+    table2[c] = pd.to_numeric(table2[c], errors="coerce")
+
+print("Table 2 loaded:", table2.shape)
+
+
+# =====================================================================
+# TABLE 3: State-wise, 2023-24 (36 states/UTs)
+# =====================================================================
+raw3 = pd.read_excel("Table 3 Principal Characterstics By Major States_2023_2024.xls",
+                      sheet_name="web3", header=None)
+
+col_names_3 = (raw3.iloc[3].fillna("") + " " + raw3.iloc[4].fillna("")).str.strip()
+col_names_3[0] = "State"
+
+table3 = raw3.iloc[6:].copy()
+table3.columns = col_names_3
+table3["State"] = table3["State"].astype(str).str.strip()
+table3 = table3[~table3["State"].isin(["nan", "", "All India"])]
+table3 = table3[~table3["State"].str.startswith("*")]          # drop footnote text row
+table3["State"] = table3["State"].str.replace("*", "", regex=False)  # "Lakshadweep*" -> "Lakshadweep"
+table3 = table3.dropna(subset=["State"])
+table3 = table3.reset_index(drop=True)
+
+for c in table3.columns[1:]:
+    table3[c] = pd.to_numeric(table3[c], errors="coerce")
+
+print("Table 3 loaded:", table3.shape)
+
+
+# =====================================================================
+# TABLE 5: NIC 3-digit, 2023-24 (77 industries, more detailed than Table 2)
+# =====================================================================
+raw5 = pd.read_excel("Table 5 Estimate of important characteristics by 3 digit of NIC08_2023_2024.xls",
+                      sheet_name="web5", header=None)
+
+nic_codes = raw5.iloc[4, 1:].tolist()
+row_labels = raw5.iloc[5:36, 0].tolist()
+
+table5 = raw5.iloc[5:36, 1:].copy()
+table5.columns = nic_codes
+table5.index = row_labels
+table5 = table5.T   # flip so each NIC code becomes a row instead of a column
+table5 = table5.reset_index().rename(columns={"index": "NIC_3digit"})
+table5 = table5[~table5["NIC_3digit"].isin(["ALL", "Others"])].reset_index(drop=True)
+
+for c in table5.columns[1:]:
+    table5[c] = pd.to_numeric(table5[c], errors="coerce")
+
+print("Table 5 loaded:", table5.shape)
+
+print("\nDone. You now have: table1, table2, table3, table5")
